@@ -1,0 +1,56 @@
+
+name: Build Ganapati Club APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Extract ZIP
+        run: |
+          mkdir extracted
+          unzip -o ganapati_club_secure_v2.zip -d extracted
+
+      - name: Find app project
+        run: |
+          find extracted -name package.json
+
+      - name: Install and build APK
+        run: |
+          PROJECT=$(dirname "$(find extracted -name package.json -print -quit)")
+          test -f "$PROJECT/package.json"
+          cd "$PROJECT"
+          npm install
+          if [ ! -d android ]; then
+            npx cap add android
+          fi
+          npx cap sync android
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: Save APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Ganapati-Club-APK
+          path: extracted/**/android/app/build/outputs/apk/debug/app-debug.apk
